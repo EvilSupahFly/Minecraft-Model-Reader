@@ -224,7 +224,7 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
 
     def _get_model(self, block: Block) -> BlockMesh:
         """Find the model paths for a given block state and load them."""
-        print(f"Initiating model retrieval for block: {block.namespace}:{block.base_name}")
+        log.error(f"Initiating model retrieval for block: {block.namespace}:{block.base_name}")
         if (block.namespace, block.base_name) in self._blockstate_files:
             blockstate: dict = self._blockstate_files[
                 (block.namespace, block.base_name)
@@ -232,10 +232,10 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
 
             if "variants" in blockstate:
                 for variant in blockstate["variants"]:
-                    print(f"Evaluating variant: {variant}")
+                    log.error("Evaluating variant: {variant}")
                     if variant == "":
                         try:
-                            print(f"Attempting to load model for default variant.")
+                            log.error("Attempting to load model for default variant.")
                             return self._load_blockstate_model(
                                 blockstate["variants"][variant]
                             )
@@ -256,7 +256,7 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                             for match in properties_match
                         ):
                             try:
-                                print(f"Loading model for variant: {variant} with matching properties.")
+                                log.error(f"Loading model for variant: {variant} with matching properties.")
                                 return self._load_blockstate_model(
                                     blockstate["variants"][variant]
                                 )
