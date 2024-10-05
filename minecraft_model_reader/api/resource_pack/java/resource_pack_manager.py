@@ -7,8 +7,9 @@ import numpy
 import glob
 import itertools
 import logging
-
+import pdb
 import amulet_nbt
+import datetime
 
 from minecraft_model_reader.api import Block
 from minecraft_model_reader.api.resource_pack import BaseResourcePackManager
@@ -26,7 +27,7 @@ from minecraft_model_reader.api.mesh.block.cube import (
 )
 
 log = logging.getLogger(__name__)
-
+logging.basicConfig(level=logging.DEBUG)
 
 UselessImageGroups = {
     "colormap",
@@ -63,6 +64,14 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
         if load:
             for _ in self.reload():
                 pass
+
+def trace_file_io(file_path):
+    """Trace file I/O operations and log details."""
+    pdb.set_trace()  # Start the debugger
+    with open(file_path, 'r') as file:
+        data = file.read()
+        timestamp = datetime.datetime.now()
+        print(f"\n\nFile: {file_path}, Accessed on: {timestamp}, Data: {data}")
 
     def _unload(self) -> None:
         """Clear all loaded resources."""
@@ -186,14 +195,14 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                 try:
                     self._blockstate_files[key] = json.load(fi)
                 except json.JSONDecodeError:
-                    log.error(f"Failed to parse blockstate file {path}")
+                    log.debug(f"Failed to parse blockstate file {path}")
 
         for key, path in model_file_paths.items():
             with open(path) as fi:
                 try:
                     self._model_files[key] = json.load(fi)
                 except json.JSONDecodeError:
-                    log.error(f"Failed to parse model file file {path}")
+                    log.debug(f"Failed to parse model file file {path}")
 
     @property
     def textures(self) -> tuple[str, ...]:
@@ -224,29 +233,19 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
 
     def _get_model(self, block: Block) -> BlockMesh:
         """Find the model paths for a given block state and load them."""
-        log.error(f"Initiating model retrieval for block: {block.namespace}:{block.base_name}")
         if (block.namespace, block.base_name) in self._blockstate_files:
             blockstate: dict = self._blockstate_files[
                 (block.namespace, block.base_name)
             ]
-
             if "variants" in blockstate:
                 for variant in blockstate["variants"]:
-                    log.error("Evaluating variant: {variant}")
                     if variant == "":
                         try:
-                            log.error("Attempting to load model for default variant.")
-                            return self._load_blockstate_model(
-                                blockstate["variants"][variant]
-                            )
+                            return self._load_blockstate_model(blockstate["variants"][variant])
                         except Exception as e:
-                            log.error(
-                                f"Failed to load block model {blockstate['variants'][variant]}\n{e}"
-                            )
+                            log.debug(f"Failed to load block model {blockstate['variants'][variant]}\n{e}")
                     else:
-                        properties_match = Block.properties_regex.finditer(
-                            f",{variant}"
-                        )
+                        properties_match = Block.properties_regex.finditer(f",{variant}")
                         if all(
                             block.properties.get(
                                 match.group("name"),
@@ -256,14 +255,12 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                             for match in properties_match
                         ):
                             try:
-                                log.error(f"Loading model for variant: {variant} with matching properties.")
                                 return self._load_blockstate_model(
                                     blockstate["variants"][variant]
                                 )
                             except Exception as e:
-                                log.error(
-                                    f"Failed to load block model {blockstate['variants'][variant]}\n{e}"
-                                )
+                                log.debug(f"Failed to load block model {blockstate['variants'][variant]}\n{e}")
+                                trace_file_io("{blockstate['variants'][variant]}\n")
 
             elif "multipart" in blockstate:
                 models = []
@@ -305,11 +302,11 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                                 )
 
                             except Exception as e:
-                                log.error(
+                                log.debug(
                                     f"Failed to load block model {case['apply']}\n{e}"
                                 )
                     except Exception as e:
-                        log.error(f"Failed to parse block state for {block}\n{e}")
+                        log.debug(f"Failed to parse block state for {block}\n{e}")
 
                 return BlockMesh.merge(models)
 

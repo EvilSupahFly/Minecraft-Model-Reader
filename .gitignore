@@ -114,3 +114,5 @@ dmypy.json
 .pyre/
 
 test_packs/
+Minecraft-Model-Reader.code-workspace
+*.md
