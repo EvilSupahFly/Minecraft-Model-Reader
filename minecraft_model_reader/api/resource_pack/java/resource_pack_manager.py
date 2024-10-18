@@ -7,9 +7,8 @@ import numpy
 import glob
 import itertools
 import logging
-import pdb
+
 import amulet_nbt
-import datetime
 
 from minecraft_model_reader.api import Block
 from minecraft_model_reader.api.resource_pack import BaseResourcePackManager
@@ -27,7 +26,7 @@ from minecraft_model_reader.api.mesh.block.cube import (
 )
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+
 
 UselessImageGroups = {
     "colormap",
@@ -65,14 +64,6 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
             for _ in self.reload():
                 pass
 
-def trace_file_io(file_path):
-    """Trace file I/O operations and log details."""
-    pdb.set_trace()  # Start the debugger
-    with open(file_path, 'r') as file:
-        data = file.read()
-        timestamp = datetime.datetime.now()
-        print(f"\n\nFile: {file_path}, Accessed on: {timestamp}, Data: {data}")
-
     def _unload(self) -> None:
         """Clear all loaded resources."""
         super()._unload()
@@ -89,10 +80,12 @@ def trace_file_io(file_path):
             os.environ["CACHE_DIR"], "resource_packs", "java", "transparency_cache.json"
         )
         self._load_transparency_cache(transparency_cache_path)
+        print(f"transparency_cache_path = {transparency_cache_path}")
 
         self._textures[("minecraft", "missing_no")] = self.missing_no
 
         pack_count = len(self._packs)
+        print(f"Total packs to process: {pack_count}")
 
         for pack_index, pack in enumerate(self._packs):
             # pack_format=2 textures/blocks, textures/items - case sensitive
@@ -101,6 +94,7 @@ def trace_file_io(file_path):
             # pack_format=5 model paths and texture paths are now optionally namespaced
 
             pack_progress = pack_index / pack_count
+            print(f"Processing pack {pack_index + 1}/{pack_count} - Progress: {pack_progress:.2%}")
             yield pack_progress
 
             if pack.valid_pack and pack.pack_format >= 2:
@@ -117,28 +111,37 @@ def trace_file_io(file_path):
                 )
                 image_count = len(image_paths)
                 sub_progress = pack_progress
+                print(f"image_paths = {image_paths}")
                 for image_index, texture_path in enumerate(image_paths):
                     _, namespace, _, *rel_path_list = os.path.normpath(
                         os.path.relpath(texture_path, pack.root_dir)
                     ).split(os.sep)
+                    print(f"image_index = {image_index}")
+                    print(f"texture_path = {texture_path}")
                     if rel_path_list[0] not in UselessImageGroups:
                         rel_path = "/".join(rel_path_list)[:-4]
                         self._textures[(namespace, rel_path)] = texture_path
+                        print(f"rel_path = {rel_path}")
+                        print(f"texture_path = {texture_path}")
                         if (
                             os.stat(texture_path).st_mtime
                             != self._texture_is_transparent.get(texture_path, [0])[0]
                         ):
                             im: Image.Image = Image.open(texture_path)
+                            print(f"im: Image.Image = Image.open({texture_path})")
                             if im.mode == "RGBA":
                                 alpha = numpy.array(im.getchannel("A").getdata())
                                 texture_is_transparent = bool(numpy.any(alpha != 255))
+                                print(f"texture_is_transparent = True")
                             else:
                                 texture_is_transparent = False
+                                print(f"texture_is_transparent = False")
 
                             self._texture_is_transparent[texture_path] = (
                                 os.stat(texture_path).st_mtime,
                                 texture_is_transparent,
                             )
+                            print(f"self._texture_is_transparent[texture_path] = {self._texture_is_transparent[texture_path]}")
                     yield sub_progress + image_index / (image_count * pack_count * 3)
 
                 blockstate_paths = glob.glob(
@@ -151,6 +154,8 @@ def trace_file_io(file_path):
                     )
                 )
                 blockstate_count = len(blockstate_paths)
+                print(f"blockstate_paths = {blockstate_paths}")
+                print(f"blockstate_count = {blockstate_count}")
                 sub_progress = pack_progress + 1 / (pack_count * 3)
                 for blockstate_index, blockstate_path in enumerate(blockstate_paths):
                     _, namespace, _, blockstate_file = os.path.normpath(
@@ -174,7 +179,9 @@ def trace_file_io(file_path):
                     ),
                     recursive=True,
                 )
+                print(f"model_paths = {model_paths}")
                 model_count = len(model_paths)
+                print(f"model_count = {model_count}")
                 sub_progress = pack_progress + 2 / (pack_count * 3)
                 for model_index, model_path in enumerate(model_paths):
                     _, namespace, _, *rel_path_list = os.path.normpath(
@@ -187,22 +194,29 @@ def trace_file_io(file_path):
                     yield sub_progress + (model_index) / (model_count * pack_count * 3)
 
         os.makedirs(os.path.dirname(transparency_cache_path), exist_ok=True)
+        print(f"transparency_cache_path = {transparency_cache_path}")
         with open(transparency_cache_path, "w") as f:
             json.dump(self._texture_is_transparent, f)
 
         for key, path in blockstate_file_paths.items():
             with open(path) as fi:
+                print(f"blockstate_file_path = {path}")
+                print(f"key = {key}")
                 try:
                     self._blockstate_files[key] = json.load(fi)
+                    print(f"self._blockstate_files[key] = {self._blockstate_files[key]}")
                 except json.JSONDecodeError:
-                    log.debug(f"Failed to parse blockstate file {path}")
+                    log.exception(f"JSONDecodeError: Failed to parse blockstate file {path}")
 
         for key, path in model_file_paths.items():
             with open(path) as fi:
+                print(f"model_file_path = {path}")
+                print(f"key = {key}")
                 try:
                     self._model_files[key] = json.load(fi)
+                    print(f"self._model_files[key] = {self._model_files[key]}")
                 except json.JSONDecodeError:
-                    log.debug(f"Failed to parse model file file {path}")
+                    log.exception(f"JSONDecodeError: Failed to parse model file {path}")
 
     @property
     def textures(self) -> tuple[str, ...]:
@@ -214,7 +228,10 @@ def trace_file_io(file_path):
         if namespace is None:
             return self.missing_no
         key = (namespace, relative_path)
+        print(f"@property -- namespace = {namespace}")
+        print(f"@property -- key = {key}")
         if key in self._textures:
+            print(f"self._textures[key] = {self._textures[key]}")
             return self._textures[key]
         else:
             return self.missing_no
@@ -230,6 +247,9 @@ def trace_file_io(file_path):
             ]
         else:
             raise Exception(f"Could not parse state val {val}")
+            #import traceback
+            #traceback.print_exc()
+            #continue
 
     def _get_model(self, block: Block) -> BlockMesh:
         """Find the model paths for a given block state and load them."""
@@ -241,11 +261,22 @@ def trace_file_io(file_path):
                 for variant in blockstate["variants"]:
                     if variant == "":
                         try:
-                            return self._load_blockstate_model(blockstate["variants"][variant])
+                            return self._load_blockstate_model(
+                                blockstate["variants"][variant]
+                            )
                         except Exception as e:
-                            log.debug(f"Failed to load block model {blockstate['variants'][variant]}\n{e}")
+                            print(f"Failed to load block model blockstate['variants'][{variant}]\n{str(e)}")
+                            log.exception(
+                                f"Failed to load block model {blockstate['variants'][variant]}\n{str(e)}" # changed {e} to {str(e)}
+                            )
+                            import traceback
+                            traceback.print_exc()
+                            continue
                     else:
-                        properties_match = Block.properties_regex.finditer(f",{variant}")
+                        properties_match = Block.properties_regex.finditer(
+                            f",{variant}"
+                        )
+                        print(f"def _get_model - variant = {variant}")
                         if all(
                             block.properties.get(
                                 match.group("name"),
@@ -254,15 +285,22 @@ def trace_file_io(file_path):
                             == match.group("value")
                             for match in properties_match
                         ):
+                            print(f'''match.group("name") = {"name"}''')
+                            print(f'''match.group("value") = {"value"}''')
                             try:
                                 return self._load_blockstate_model(
                                     blockstate["variants"][variant]
                                 )
                             except Exception as e:
-                                log.debug(f"Failed to load block model {blockstate['variants'][variant]}\n{e}")
-                                trace_file_io("{blockstate['variants'][variant]}\n")
+                                log.exception(
+                                    f"Failed to load block model {blockstate['variants'][variant]}\n{e}"
+                                )
+                                import traceback
+                                traceback.print_exc()
+                                continue
 
             elif "multipart" in blockstate:
+                print(f"multipart blockstate: models = []")
                 models = []
 
                 for case in blockstate["multipart"]:
@@ -302,11 +340,18 @@ def trace_file_io(file_path):
                                 )
 
                             except Exception as e:
-                                log.debug(
+                                log.exception(
                                     f"Failed to load block model {case['apply']}\n{e}"
                                 )
+                                import traceback
+                                traceback.print_exc()
+                                continue
+
                     except Exception as e:
-                        log.debug(f"Failed to parse block state for {block}\n{e}")
+                        log.exception(f"Failed to parse block state for {block}\n{e}")
+                        import traceback
+                        traceback.print_exc()
+                        continue
 
                 return BlockMesh.merge(models)
 
@@ -321,11 +366,14 @@ def trace_file_io(file_path):
         if "model" not in blockstate_value:
             return self.missing_block
         model_path = blockstate_value["model"]
+        print(f"{model_path} = blockstate_value['model']")
         rotx = int(blockstate_value.get("x", 0) // 90)
         roty = int(blockstate_value.get("y", 0) // 90)
         uvlock = blockstate_value.get("uvlock", False)
 
+        print(f"\nmodel = copy.deepcopy(self._load_block_model(model_path))")
         model = copy.deepcopy(self._load_block_model(model_path))
+        print(f"{model} = copy.deepcopy(self._load_block_model({model_path}))\n")
 
         # TODO: rotate model based on uv_lock
         return model.rotate(rotx, roty)
@@ -333,7 +381,9 @@ def trace_file_io(file_path):
     def _load_block_model(self, model_path: str) -> BlockMesh:
         """Load the model file associated with the Block and convert to a BlockMesh."""
         # recursively load model files into one dictionary
+        print(f"java_model = self._recursive_load_block_model(model_path)")
         java_model = self._recursive_load_block_model(model_path)
+        print(f"java_model = self._recursive_load_block_model({model_path})")
 
         # set up some variables
         texture_dict = {}
@@ -405,6 +455,7 @@ def trace_file_io(file_path):
 
                     # get the relative texture path for the texture used
                     texture_relative_path = element_faces[face_dir].get("texture", None)
+                    print(f"\ntexture_relative_path = {texture_relative_path}\n")
                     while isinstance(
                         texture_relative_path, str
                     ) and texture_relative_path.startswith("#"):
@@ -420,6 +471,7 @@ def trace_file_io(file_path):
                     texture_path = self.get_texture_path(
                         namespace, texture_relative_path
                     )
+                    print(f"\ntexture_path = {texture_path}\n")
 
                     if check_faces:
                         if self._texture_is_transparent[texture_path][1]:
@@ -528,6 +580,7 @@ def trace_file_io(file_path):
     def _recursive_load_block_model(self, model_path: str) -> dict:
         """Load a model json file and recursively load and merge the parent entries into one json file."""
         model_path_list = model_path.split(":", 1)
+        print(f"\nmodel_path_list = {model_path_list}\n")
         if len(model_path_list) == 2:
             namespace, model_path = model_path_list
         else:
