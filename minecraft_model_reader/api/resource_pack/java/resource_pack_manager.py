@@ -26,9 +26,6 @@ from minecraft_model_reader.api.mesh.block.cube import (
     tri_face,
 )
 
-log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
-
 UselessImageGroups = {
     "colormap",
     "effect",
@@ -39,6 +36,18 @@ UselessImageGroups = {
     "mob_effect",
     "particle",
 }
+
+#debug_file = os.path.join(os.path.expanduser("~"), "afp-mr.log")
+#logging.basicConfig(filename=debug_file, level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+log = logging.getLogger(__name__)
+
+#def trace_file_io(data):
+#    """Trace file I/O operations and log details."""
+#    timestamp = datetime.datetime.now()
+#    data = f"\n\nAccessed: {timestamp}, Data: {data}"
+#    with open(debug_file, 'w') as file:
+#        file.write(data)
+#    print(data)
 
 
 class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
@@ -64,14 +73,6 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
         if load:
             for _ in self.reload():
                 pass
-
-def trace_file_io(file_path):
-    """Trace file I/O operations and log details."""
-    pdb.set_trace()  # Start the debugger
-    with open(file_path, 'r') as file:
-        data = file.read()
-        timestamp = datetime.datetime.now()
-        print(f"\n\nFile: {file_path}, Accessed on: {timestamp}, Data: {data}")
 
     def _unload(self) -> None:
         """Clear all loaded resources."""
@@ -195,14 +196,14 @@ def trace_file_io(file_path):
                 try:
                     self._blockstate_files[key] = json.load(fi)
                 except json.JSONDecodeError:
-                    log.debug(f"Failed to parse blockstate file {path}")
+                    log.error(f"Failed to parse blockstate file {path}")
 
         for key, path in model_file_paths.items():
             with open(path) as fi:
                 try:
                     self._model_files[key] = json.load(fi)
                 except json.JSONDecodeError:
-                    log.debug(f"Failed to parse model file file {path}")
+                    log.error(f"Failed to parse model file file {path}")
 
     @property
     def textures(self) -> tuple[str, ...]:
@@ -233,6 +234,7 @@ def trace_file_io(file_path):
 
     def _get_model(self, block: Block) -> BlockMesh:
         """Find the model paths for a given block state and load them."""
+        
         if (block.namespace, block.base_name) in self._blockstate_files:
             blockstate: dict = self._blockstate_files[
                 (block.namespace, block.base_name)
@@ -243,7 +245,8 @@ def trace_file_io(file_path):
                         try:
                             return self._load_blockstate_model(blockstate["variants"][variant])
                         except Exception as e:
-                            log.debug(f"Failed to load block model {blockstate['variants'][variant]}\n{e}")
+                            log.error(f"Failed to load block model {blockstate['variants'][variant]}\n{e}")
+                            #trace_file_io("Failed to load block model {blockstate['variants'][variant]}\n{e}")
                     else:
                         properties_match = Block.properties_regex.finditer(f",{variant}")
                         if all(
@@ -259,8 +262,8 @@ def trace_file_io(file_path):
                                     blockstate["variants"][variant]
                                 )
                             except Exception as e:
-                                log.debug(f"Failed to load block model {blockstate['variants'][variant]}\n{e}")
-                                trace_file_io("{blockstate['variants'][variant]}\n")
+                                log.error(f"Failed to load block model {blockstate['variants'][variant]}\n{e}")
+                                #trace_file_io("Failed to load block model {blockstate['variants'][variant]}\n{e}")
 
             elif "multipart" in blockstate:
                 models = []
@@ -302,11 +305,15 @@ def trace_file_io(file_path):
                                 )
 
                             except Exception as e:
-                                log.debug(
+                                log.error(
                                     f"Failed to load block model {case['apply']}\n{e}"
                                 )
+                                #trace_file_io(
+                                #    "Failed to load block model {case['apply']}\n{e}"
+                                #)
                     except Exception as e:
-                        log.debug(f"Failed to parse block state for {block}\n{e}")
+                        log.error(f"Failed to parse block state for {block}\n{e}")
+                        #trace_file_io("Failed to parse block state for {block}\n{e}")
 
                 return BlockMesh.merge(models)
 
