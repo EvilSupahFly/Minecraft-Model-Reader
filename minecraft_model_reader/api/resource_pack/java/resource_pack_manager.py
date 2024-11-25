@@ -433,25 +433,25 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                         namespace, texture_relative_path
                     )
                     # Fixes missing textures in Flatpak
-                    if texture_path not in self._texture_is_transparent:
-                        if os.path.exists(texture_path):
-                            im: Image.Image = Image.open(texture_path)
-                            if im.mode == 'RGBA':
-                                alpha = numpy.array(im.getchannel('A').getdata())
-                                texture_is_transparent = bool(numpy.any(alpha != 255))
-                            else:
-                                texture_is_transparent = False
-                            self._texture_is_transparent[texture_path] = (os.stat(texture_path).st_mtime, texture_is_transparent)
-                    else:
-                        log.warning(f"Texture path not found: {texture_path}. Defaulting to non-transparent.")
-                        self._texture_is_transparent[texture_path] = (0, False)
-                    # Also fixes missing textures in Flatpak - maybe better
                     #if texture_path not in self._texture_is_transparent:
-                    #    log.warning(f"Texture path not found: {texture_path}. Defaulting to transparent.")
-                    #    self._texture_is_transparent[texture_path] = (0, True)  # Assume texture is transparent
-                    #    if self._texture_is_transparent[texture_path][1]:
-                    #       transparent = Transparency.FullTranslucent
-                    #       check_faces = True
+                    #    if os.path.exists(texture_path):
+                    #        im: Image.Image = Image.open(texture_path)
+                    #        if im.mode == 'RGBA':
+                    #            alpha = numpy.array(im.getchannel('A').getdata())
+                    #            texture_is_transparent = bool(numpy.any(alpha != 255))
+                    #        else:
+                    #            texture_is_transparent = False
+                    #        self._texture_is_transparent[texture_path] = (os.stat(texture_path).st_mtime, texture_is_transparent)
+                    #else:
+                    #    log.warning(f"Texture path not found: {texture_path}. Defaulting to non-transparent.")
+                    #    self._texture_is_transparent[texture_path] = (0, False)
+                    # Also fixes missing textures in Flatpak - maybe better
+                    if texture_path not in self._texture_is_transparent:
+                        log.warning(f"Texture path not found: {texture_path}. Defaulting to transparent.")
+                        self._texture_is_transparent[texture_path] = (0, True)  # Assume texture is transparent
+                        if self._texture_is_transparent[texture_path][1]:
+                           transparent = Transparency.FullTranslucent
+                           check_faces = True
                     # Will have to test both and see which is the better fix
                     # get the texture
                     if texture_relative_path not in texture_dict:
