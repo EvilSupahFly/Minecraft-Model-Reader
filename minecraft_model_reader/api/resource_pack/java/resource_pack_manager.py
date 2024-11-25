@@ -7,7 +7,6 @@ import numpy
 import glob
 import itertools
 import traceback
-import traceback
 import amulet_nbt
 
 import logging
