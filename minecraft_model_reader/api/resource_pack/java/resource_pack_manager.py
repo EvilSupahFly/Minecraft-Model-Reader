@@ -7,7 +7,12 @@ import numpy
 import glob
 import itertools
 import traceback
+import traceback
 import amulet_nbt
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger(__name__)
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -59,6 +64,7 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
         elif isinstance(resource_packs, JavaResourcePack):
             self._packs = [resource_packs]
         else:
+            raise Exception(f"Invalid resource pack format: {resource_packs}\n")
             raise Exception(f"Invalid resource pack format: {resource_packs}\n")
         if load:
             for _ in self.reload():
@@ -187,12 +193,14 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                     self._blockstate_files[key] = json.load(fi)
                 except json.JSONDecodeError:
                     log.error(f"json.JSONDecodeError Failed to parse blockstate file {path}")
+                    log.error(f"json.JSONDecodeError Failed to parse blockstate file {path}")
 
         for key, path in model_file_paths.items():
             with open(path) as fi:
                 try:
                     self._model_files[key] = json.load(fi)
                 except json.JSONDecodeError:
+                    log.error(f"json.JSONDecodeError Failed to parse model file file {path}")
                     log.error(f"json.JSONDecodeError Failed to parse model file file {path}")
 
     @property
@@ -205,6 +213,7 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
         if namespace is None:
             return self.missing_no
         key = (namespace, relative_path)
+        print(f"@property -- namespace = {namespace}, key = {key}\n")
         print(f"@property -- namespace = {namespace}, key = {key}\n")
         if key in self._textures:
             return self._textures[key]
@@ -222,12 +231,14 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
             ]
         else:
             raise Exception(f'"@stticmethod" Could not parse state val {val}')
+            raise Exception(f'"@stticmethod" Could not parse state val {val}')
             #import traceback
             #traceback.print_exc()
             #continue
 
     def _get_model(self, block: Block) -> BlockMesh:
         """Find the model paths for a given block state and load them."""
+
 
         if (block.namespace, block.base_name) in self._blockstate_files:
             blockstate: dict = self._blockstate_files[
@@ -241,6 +252,11 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                                 blockstate["variants"][variant]
                             )
                         except Exception as e:
+                            exc_obj = e
+                            tb_str = ''.join(traceback.format_exception(None, exc_obj, exc_obj.__traceback__))
+                            log.error(f'variant Failed to load block model {blockstate["variants"][variant]}\n{e}\n')
+                            traceback.print_exc()
+                            print(tb_str)
                             exc_obj = e
                             tb_str = ''.join(traceback.format_exception(None, exc_obj, exc_obj.__traceback__))
                             log.error(f'variant Failed to load block model {blockstate["variants"][variant]}\n{e}\n')
@@ -265,10 +281,14 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                             except Exception as e:
                                 log.exception(
                                     f'"properties_match" Failed to load block model {blockstate["variants"][variant]}\n{e}\n'
+                                    f'"properties_match" Failed to load block model {blockstate["variants"][variant]}\n{e}\n'
                                 )
                                 exc_obj = e
                                 tb_str = ''.join(traceback.format_exception(None, exc_obj, exc_obj.__traceback__))
+                                exc_obj = e
+                                tb_str = ''.join(traceback.format_exception(None, exc_obj, exc_obj.__traceback__))
                                 traceback.print_exc()
+                                print(tb_str)
                                 print(tb_str)
                                 continue
 
@@ -315,11 +335,13 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                             except Exception as e:
                                 log.exception(
                                     f"blockstate_multipart Failed to load block model {case['apply']}\n{e}\n"
+                                    f"blockstate_multipart Failed to load block model {case['apply']}\n{e}\n"
                                 )
                                 traceback.print_exc()
                                 continue
 
                     except Exception as e:
+                        log.exception(f"Failed to parse block state for {block}\n{e}\n")
                         log.exception(f"Failed to parse block state for {block}\n{e}\n")
                         traceback.print_exc()
                         continue
@@ -338,10 +360,12 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
             return self.missing_block
         model_path = blockstate_value["model"]
         print(f"{model_path} = blockstate_value['model']\n")
+        print(f"{model_path} = blockstate_value['model']\n")
         rotx = int(blockstate_value.get("x", 0) // 90)
         roty = int(blockstate_value.get("y", 0) // 90)
         uvlock = blockstate_value.get("uvlock", False)
 
+        print(f"\nmodel = copy.deepcopy(self._load_block_model(model_path))\n")
         print(f"\nmodel = copy.deepcopy(self._load_block_model(model_path))\n")
         model = copy.deepcopy(self._load_block_model(model_path))
         print(f"{model} = copy.deepcopy(self._load_block_model({model_path}))\n")
@@ -441,7 +465,7 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                     texture_path = self.get_texture_path(
                         namespace, texture_relative_path
                     )
-
+                    # Fixes missing textures in Flatpak
                     if texture_path not in self._texture_is_transparent:
                         log.warning(f"Texture path not found: {texture_path}. Defaulting to non-transparent.")
                         self._texture_is_transparent[texture_path] = (0, False)  # Default to non-transparent if not found
