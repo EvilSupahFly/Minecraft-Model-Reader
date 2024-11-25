@@ -438,8 +438,9 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                     )
                     # Fixes missing textures in Flatpak
                     if texture_path not in self._texture_is_transparent:
-                        log.warning(f"Texture path not found: {texture_path}. Defaulting to non-transparent.")
-                        self._texture_is_transparent[texture_path] = (0, False)  # Default to non-transparent if not found
+                        log.warning(f"Texture path not found: {texture_path}. Defaulting to transparent.")
+                        # self._texture_is_transparent[texture_path] = (0, Transparency.Partial)  # Default to partial transparency - untested
+                        self._texture_is_transparent[texture_path] = (0, True)  # Default to transparent if not found
 
                         if self._texture_is_transparent[texture_path][1]:
                             check_faces = False
