@@ -10,7 +10,7 @@ import traceback
 import amulet_nbt
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 from minecraft_model_reader.api import Block
@@ -270,7 +270,6 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                                 continue
 
             elif "multipart" in blockstate:
-                print(f"multipart blockstate: models = []")
                 models = []
 
                 for case in blockstate["multipart"]:
@@ -346,9 +345,7 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
     def _load_block_model(self, model_path: str) -> BlockMesh:
         """Load the model file associated with the Block and convert to a BlockMesh."""
         # recursively load model files into one dictionary
-        print(f"java_model = self._recursive_load_block_model(model_path)")
         java_model = self._recursive_load_block_model(model_path)
-        print(f"java_model = self._recursive_load_block_model({model_path})")
 
         # set up some variables
         texture_dict = {}
@@ -448,7 +445,7 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                     else:
                         log.warning(f"Texture path not found: {texture_path}. Defaulting to non-transparent.")
                         self._texture_is_transparent[texture_path] = (0, False)
-                    # Also fixes missing textures in Flatpak
+                    # Also fixes missing textures in Flatpak - maybe better
                     #if texture_path not in self._texture_is_transparent:
                     #    log.warning(f"Texture path not found: {texture_path}. Defaulting to transparent.")
                     #    self._texture_is_transparent[texture_path] = (0, True)  # Assume texture is transparent
