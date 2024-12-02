@@ -51,6 +51,7 @@ class BaseResourcePackManager(Generic[PackT]):
 
     @property
     def missing_block(self) -> BlockMesh:
+        print(f'self._missing_block = {self._missing_block}')
         if self._missing_block is None:
             self._missing_block = get_missing_block(self)
         return self._missing_block

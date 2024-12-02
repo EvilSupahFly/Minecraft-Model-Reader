@@ -6,12 +6,9 @@ from PIL import Image
 import numpy
 import glob
 import itertools
-import traceback
-import amulet_nbt
-
 import logging
-#logging.basicConfig(level=logging.DEBUG)
-log = logging.getLogger(__name__)
+
+import amulet_nbt
 
 from minecraft_model_reader.api import Block
 from minecraft_model_reader.api.resource_pack import BaseResourcePackManager
@@ -27,6 +24,9 @@ from minecraft_model_reader.api.mesh.block.cube import (
     uv_rotation_lut,
     tri_face,
 )
+
+log = logging.getLogger(__name__)
+
 
 UselessImageGroups = {
     "colormap",
@@ -54,15 +54,19 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
         self._textures: dict[tuple[str, str], str] = {}
         self._texture_is_transparent: dict[str, tuple[float, bool]] = {}
         self._model_files: dict[tuple[str, str], dict] = {}
+
         if isinstance(resource_packs, Iterable):
             self._packs = list(resource_packs)
+            print(f"Iterable self._packs = {self._packs}")
         elif isinstance(resource_packs, JavaResourcePack):
             self._packs = [resource_packs]
+            print(f"JavaResourcePack self._packs = {self._packs}")
         else:
-            raise Exception(f"Invalid resource pack format: {resource_packs}\n")
+            raise Exception(f"Invalid format {resource_packs}")
         if load:
             for _ in self.reload():
                 pass
+
 
     def _unload(self) -> None:
         """Clear all loaded resources."""
@@ -76,11 +80,8 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
         blockstate_file_paths: dict[tuple[str, str], str] = {}
         model_file_paths: dict[tuple[str, str], str] = {}
 
-        transparency_cache_path = os.path.join(
-            os.environ["CACHE_DIR"], "resource_packs", "java", "transparency_cache.json"
-        )
+        transparency_cache_path = os.path.join(os.environ["CACHE_DIR"], "resource_packs", "java", "transparency_cache.json")
         self._load_transparency_cache(transparency_cache_path)
-
         self._textures[("minecraft", "missing_no")] = self.missing_no
 
         pack_count = len(self._packs)
@@ -115,10 +116,7 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                     if rel_path_list[0] not in UselessImageGroups:
                         rel_path = "/".join(rel_path_list)[:-4]
                         self._textures[(namespace, rel_path)] = texture_path
-                        if (
-                            os.stat(texture_path).st_mtime
-                            != self._texture_is_transparent.get(texture_path, [0])[0]
-                        ):
+                        if (os.stat(texture_path).st_mtime != self._texture_is_transparent.get(texture_path, [0])[0]):
                             im: Image.Image = Image.open(texture_path)
                             if im.mode == "RGBA":
                                 alpha = numpy.array(im.getchannel("A").getdata())
@@ -126,10 +124,7 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                             else:
                                 texture_is_transparent = False
 
-                            self._texture_is_transparent[texture_path] = (
-                                os.stat(texture_path).st_mtime,
-                                texture_is_transparent,
-                            )
+                            self._texture_is_transparent[texture_path] = os.stat(texture_path).st_mtime, texture_is_transparent
                     yield sub_progress + image_index / (image_count * pack_count * 3)
 
                 blockstate_paths = glob.glob(
@@ -186,14 +181,14 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                 try:
                     self._blockstate_files[key] = json.load(fi)
                 except json.JSONDecodeError:
-                    log.error(f"json.JSONDecodeError Failed to parse blockstate file {path}")
+                    log.error(f"Failed to parse blockstate file {path}")
 
         for key, path in model_file_paths.items():
             with open(path) as fi:
                 try:
                     self._model_files[key] = json.load(fi)
                 except json.JSONDecodeError:
-                    log.error(f"json.JSONDecodeError Failed to parse model file file {path}")
+                    log.error(f"Failed to parse model file file {path}")
 
     @property
     def textures(self) -> tuple[str, ...]:
@@ -220,12 +215,10 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                 amulet_nbt.TAG_String("true") if val else amulet_nbt.TAG_String("false")
             ]
         else:
-            raise Exception(f'"@stticmethod" Could not parse state val {val}')
+            raise Exception(f"Could not parse state val {val}")
 
     def _get_model(self, block: Block) -> BlockMesh:
         """Find the model paths for a given block state and load them."""
-
-
         if (block.namespace, block.base_name) in self._blockstate_files:
             blockstate: dict = self._blockstate_files[
                 (block.namespace, block.base_name)
@@ -238,11 +231,9 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                                 blockstate["variants"][variant]
                             )
                         except Exception as e:
-                            exc_obj = e
-                            tb_str = ''.join(traceback.format_exception(None, exc_obj, exc_obj.__traceback__))
-                            log.error(f'variant Failed to load block model {blockstate["variants"][variant]}\n{e}\n')
-                            traceback.print_exc()
-                            print(tb_str)
+                            log.error(
+                                f"Failed to load block model {blockstate['variants'][variant]}\n{e}"
+                            )
                     else:
                         properties_match = Block.properties_regex.finditer(
                             f",{variant}"
@@ -260,14 +251,9 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                                     blockstate["variants"][variant]
                                 )
                             except Exception as e:
-                                log.exception(
-                                    f'"properties_match" Failed to load block model {blockstate["variants"][variant]}\n{e}\n'
+                                log.error(
+                                    f"Failed to load block model {blockstate['variants'][variant]}\n{e}"
                                 )
-                                exc_obj = e
-                                tb_str = ''.join(traceback.format_exception(None, exc_obj, exc_obj.__traceback__))
-                                traceback.print_exc()
-                                print(tb_str)
-                                continue
 
             elif "multipart" in blockstate:
                 models = []
@@ -309,16 +295,11 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                                 )
 
                             except Exception as e:
-                                log.exception(
-                                    f"blockstate_multipart Failed to load block model {case['apply']}\n{e}\n"
+                                log.error(
+                                    f"Failed to load block model {case['apply']}\n{e}"
                                 )
-                                traceback.print_exc()
-                                continue
-
                     except Exception as e:
-                        log.exception(f"Failed to parse block state for {block}\n{e}\n")
-                        traceback.print_exc()
-                        continue
+                        log.error(f"Failed to parse block state for {block}\n{e}")
 
                 return BlockMesh.merge(models)
 
@@ -432,27 +413,13 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
                     texture_path = self.get_texture_path(
                         namespace, texture_relative_path
                     )
-                    # Fixes missing textures in Flatpak
-                    #if texture_path not in self._texture_is_transparent:
-                    #    if os.path.exists(texture_path):
-                    #        im: Image.Image = Image.open(texture_path)
-                    #        if im.mode == 'RGBA':
-                    #            alpha = numpy.array(im.getchannel('A').getdata())
-                    #            texture_is_transparent = bool(numpy.any(alpha != 255))
-                    #        else:
-                    #            texture_is_transparent = False
-                    #        self._texture_is_transparent[texture_path] = (os.stat(texture_path).st_mtime, texture_is_transparent)
-                    #else:
-                    #    log.warning(f"Texture path not found: {texture_path}. Defaulting to non-transparent.")
-                    #    self._texture_is_transparent[texture_path] = (0, False)
-                    # Also fixes missing textures in Flatpak - maybe better
-                    if texture_path not in self._texture_is_transparent:
-                        log.warning(f"Texture path not found: {texture_path}. Defaulting to transparent.")
-                        self._texture_is_transparent[texture_path] = (0, True)  # Assume texture is transparent
+
+                    if check_faces:
                         if self._texture_is_transparent[texture_path][1]:
-                           transparent = Transparency.FullTranslucent
-                           check_faces = True
-                    # Will have to test both and see which is the better fix
+                            check_faces = False
+                        else:
+                            opaque_face_count += 1
+
                     # get the texture
                     if texture_relative_path not in texture_dict:
                         texture_dict[texture_relative_path] = texture_count
@@ -576,4 +543,3 @@ class JavaResourcePackManager(BaseResourcePackManager[JavaResourcePack]):
             return parent_model
 
         return {}
-

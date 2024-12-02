@@ -22,7 +22,7 @@ def get_launcher_manifest() -> dict:
     if launcher_manifest is None:
         log.info("Downloading java launcher manifest file.")
         with urlopen(
-            "https://launchermeta.mojang.com/mc/game/version_manifest.json", timeout=20
+            "https://launchermeta.mojang.com/mc/game/version_manifest.json", timeout=60
         ) as manifest:
             launcher_manifest = json.load(manifest)
         log.info("Finished downloading java launcher manifest file.")
@@ -82,11 +82,13 @@ _java_vanilla_latest: Optional[JavaResourcePack] = None
 def get_java_vanilla_fix() -> JavaResourcePack:
     global _java_vanilla_fix
     if _java_vanilla_fix is None:
-        _java_vanilla_fix = JavaResourcePack(
-            os.path.join(os.path.dirname(__file__), "java_vanilla_fix")
-        )
+        # New: Change the path from "/app/lib/python3.12/site-packages/minecraft_model_reader" to "/app/usr/lib/python3.12/site-packages/minecraft_model_reader" - temporarily works around missing textures
+        base_path = os.path.dirname(__file__)
+        resource_pack_path = os.path.join(base_path, "java_vanilla_fix")
+        if resource_pack_path.startswith("/app/lib/python3.12/site-packages/minecraft_model_reader"):
+            resource_pack_path = resource_pack_path.replace("/app/lib/python3.12/site-packages/minecraft_model_reader", "/app/usr/lib/python3.12/site-packages/minecraft_model_reader")
+        _java_vanilla_fix = JavaResourcePack(resource_pack_path)
     return _java_vanilla_fix
-
 
 def get_java_vanilla_latest() -> JavaResourcePack:
     global _java_vanilla_latest
@@ -110,11 +112,13 @@ def _remove_and_download(path: str, version: str) -> None:
 def _remove_and_download_iter(path: str, version: str) -> Generator[float, None, None]:
     # try downloading the new resources to a temporary location
     temp_path = os.path.join(os.path.dirname(path), "_temp_")
+
     # clear the temporary location
     if os.path.isfile(temp_path):
         os.remove(temp_path)
     elif os.path.isdir(temp_path):
         shutil.rmtree(temp_path, ignore_errors=True)
+
 
     yield from download_resources_iter(temp_path, version)
     if os.path.isdir(path):
@@ -134,7 +138,7 @@ def download_with_retry(
 
     for _ in range(attempts):
         request = Request(url, headers={"Range": f"bytes={content_length_found}-"})
-        with urlopen(request, timeout=20) as response:
+        with urlopen(request, timeout=60) as response: # Bumped timeout from 20 to 60
             content_length = int(response.headers["content-length"].strip())
             while content_length_found < content_length:
                 chunk = response.read(chunk_size)
@@ -194,6 +198,7 @@ def download_resources_iter(
             client.extract(fpath, path)
         if "pack.mcmeta" in client.namelist():
             client.extract("pack.mcmeta", path)
+            print(f'client.extract("pack.mcmeta", {path})')
         else:
             # TODO: work out proper version support for this
             with open(os.path.join(path, "pack.mcmeta"), "w") as f:
@@ -202,6 +207,7 @@ def download_resources_iter(
                 )
         if "pack.png" in client.namelist():
             client.extract("pack.png", path)
+            print(f'client.extract("pack.png", {path})')
 
     except Exception as e:
         log.error(

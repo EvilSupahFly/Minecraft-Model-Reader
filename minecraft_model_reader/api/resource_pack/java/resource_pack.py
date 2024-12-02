@@ -12,7 +12,6 @@ class JavaResourcePack(BaseResourcePack):
     def __init__(self, resource_pack_path: str):
         super().__init__(resource_pack_path)
         meta_path = os.path.join(resource_pack_path, "pack.mcmeta")
-        print(f"meta_path = {meta_path}\n")
         self._pack_format = 0
         if os.path.isfile(meta_path):
             try:
@@ -29,7 +28,6 @@ class JavaResourcePack(BaseResourcePack):
                         self._valid_pack = True
 
         pack_icon_path = os.path.join(resource_pack_path, "pack.png")
-        print(f"pack_icon_path = {pack_icon_path}\n")
         if os.path.isfile(pack_icon_path):
             self._pack_icon = pack_icon_path
 
