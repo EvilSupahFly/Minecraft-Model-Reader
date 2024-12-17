@@ -81,14 +81,14 @@ _java_vanilla_latest: Optional[JavaResourcePack] = None
 
 def get_java_vanilla_fix() -> JavaResourcePack:
     global _java_vanilla_fix
-        # New: Change the path from "/app/lib/python3.12/site-packages/minecraft_model_reader" to "/app/usr/lib/python3.12/site-packages/minecraft_model_reader" - temporarily works around missing textures
-        base_path = os.path.dirname(__file__)
-        resource_pack_path = os.path.join(base_path, "java_vanilla_fix")
-        if resource_pack_path.startswith("/app/lib/python3.12/site-packages/minecraft_model_reader"):
-            resource_pack_path = resource_pack_path.replace("/app/lib/python3.12/site-packages/minecraft_model_reader", "/app/usr/lib/python3.12/site-packages/minecraft_model_reader")
-        _java_vanilla_fix = JavaResourcePack(
-            resource_pack_path
-        )
+    # New: Change the path from "/app/lib/python3.12/site-packages/minecraft_model_reader" to "/app/usr/lib/python3.12/site-packages/minecraft_model_reader" - temporarily works around missing textures
+    base_path = os.path.dirname(__file__)
+    resource_pack_path = os.path.join(base_path, "java_vanilla_fix")
+    if resource_pack_path.startswith("/app/lib/python3.12/site-packages/minecraft_model_reader"):
+        resource_pack_path = resource_pack_path.replace("/app/lib/python3.12/site-packages/minecraft_model_reader", "/app/usr/lib/python3.12/site-packages/minecraft_model_reader")
+    _java_vanilla_fix = JavaResourcePack(
+        resource_pack_path
+    )
     return _java_vanilla_fix
 
 
