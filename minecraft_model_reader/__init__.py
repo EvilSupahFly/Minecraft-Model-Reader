@@ -11,10 +11,7 @@ os.environ.setdefault(
 # os.environ.setdefault("LOG_DIR", platformdirs.user_log_dir("AmuletTeam", "AmuletTeam"))
 
 from minecraft_model_reader.api.mesh.block.block_mesh import BlockMesh
-from minecraft_model_reader.api.resource_pack import (
-    BaseResourcePack,
-    BaseResourcePackManager,
-)
+from minecraft_model_reader.api.resource_pack import (BaseResourcePack, BaseResourcePackManager,)
 
 from ._version import get_versions
 
