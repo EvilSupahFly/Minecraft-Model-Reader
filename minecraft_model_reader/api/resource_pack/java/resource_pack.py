@@ -1,5 +1,9 @@
 import os
 import json
+import traceback
+import logging
+
+log = logging.getLogger(__name__)
 
 from minecraft_model_reader.api.resource_pack.base import BaseResourcePack
 
@@ -10,13 +14,18 @@ class JavaResourcePack(BaseResourcePack):
     This information can be used in a viewer to display the packs to the user."""
 
     def __init__(self, resource_pack_path: str):
+        log.info(f"[minecraft_model_reader/api/resource_pack/java/resource_pack.py: JavaResourcePack] Init with path: {resource_pack_path}")
+        log.info(f"[minecraft_model_reader/api/resource_pack/java/resource_pack.py: JavaResourcePack] Contents of path: {os.listdir(resource_pack_path) if os.path.isdir(resource_pack_path) else 'Not a directory'}")
+        traceback.print_stack()
         super().__init__(resource_pack_path)
         meta_path = os.path.join(resource_pack_path, "pack.mcmeta")
         self._pack_format = 0
         if os.path.isfile(meta_path):
+            log.info(f"[minecraft_model_reader/api/resource_pack/java/resource_pack.py: JavaResourcePack] Found pack.mcmeta at: {meta_path}")
             try:
                 with open(meta_path) as f:
                     pack_mcmeta = json.load(f)
+                log.info(f"[minecraft_model_reader/api/resource_pack/java/resource_pack.py: JavaResourcePack] pack.mcmeta content: {pack_mcmeta}")
             except json.JSONDecodeError:
                 pass
             else:

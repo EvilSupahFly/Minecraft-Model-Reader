@@ -36,6 +36,10 @@ def generator_unpacker(gen: Generator[Any, Any, T]) -> T:
     except StopIteration as e:
         return e.value  # type: ignore
 
+def log_missing_special_texture(file_path: str):
+    filename = os.path.basename(file_path)
+    if (filename.startswith("water") or filename.startswith("lava")) and not os.path.exists(file_path):
+        log.warning(f"[MISSING TEXTURE] Expected texture not found: {file_path}")
 
 def get_latest() -> JavaResourcePack:
     return generator_unpacker(get_latest_iter())
@@ -82,11 +86,25 @@ _java_vanilla_latest: Optional[JavaResourcePack] = None
 def get_java_vanilla_fix() -> JavaResourcePack:
     global _java_vanilla_fix
     if _java_vanilla_fix is None:
-        _java_vanilla_fix = JavaResourcePack(
-            os.path.join(os.path.dirname(__file__), "java_vanilla_fix")
-        )
-    return _java_vanilla_fix
+        fix_path = os.path.join(os.path.dirname(__file__), "java_vanilla_fix")
+        log.info(f"[DEBUG] Attempting to load Java Vanilla Fix from: {fix_path}")
 
+        # Validate critical texture files exist
+        expected_files = [
+            "assets/minecraft/models/block/water.json",
+            "assets/minecraft/textures/block/water_still.png",
+            "assets/minecraft/textures/block/lava_still.png",
+        ]
+        for relative_path in expected_files:
+            full_path = os.path.join(fix_path, relative_path)
+            if os.path.isfile(full_path):
+                log.info(f"[FOUND] {relative_path}")
+            else:
+                log.warning(f"[MISSING] {relative_path}")
+
+        _java_vanilla_fix = JavaResourcePack(fix_path)
+
+    return _java_vanilla_fix
 
 def get_java_vanilla_latest() -> JavaResourcePack:
     global _java_vanilla_latest
