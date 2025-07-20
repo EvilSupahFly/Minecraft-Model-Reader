@@ -1,10 +1,9 @@
-import os, json, logging
+import os
+import json
 
 from minecraft_model_reader.api.resource_pack.base import BaseResourcePack
-from amulet_map_editor.debug_file_access import TEXTURE_DEBUG
 
-logger = logging.getLogger(__name__)
-logger.info("minecraft_model_reader/api/resource_pack/java/resource_pack.py: from amulet_map_editor.debug_file_access import TEXTURE_DEBUG.")
+
 class JavaResourcePack(BaseResourcePack):
     """A class to hold the bare bones information about the resource pack.
     Holds the pack format, description and if the pack is valid.
@@ -37,10 +36,6 @@ class JavaResourcePack(BaseResourcePack):
         return os.path.isfile(os.path.join(pack_path, "pack.mcmeta"))
 
     def __repr__(self) -> str:
-        global TEXTURE_DEBUG
-        TEXTURE_DEBUG = True
-        logger.info(f"minecraft_model_reader/api/resource_pack/java/resource_pack.py: Java resource pack root directory: {self._root_dir}")
-        TEXTURE_DEBUG = False
         return f"JavaResourcePack({self._root_dir})"
 
     @property
